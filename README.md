@@ -17,16 +17,15 @@ Were there noticeable changes in trading volume around tariff announcements?
 
 * AAPL’s closing price exhibited a noticeable decline within two trading days of the February 1, 2025 tariff announcement.
 
-* The stock dipped approximately 4.7% from $165.30 (Jan 30) to $157.60 (Feb 4).
+
 
 **Volume Spikes**:
 
-* Trading volume jumped by nearly 50% on the day of the tariff announcement, suggesting increased investor activity.
+* Trading volume jumped on the day of the tariff announcement, suggesting increased investor activity.
 
-* Smaller volume upticks were also observed around the Jan 20 memorandum and Nov 5 election.
 
 **Insights & Implications**:
 
 * Tariff announcements can trigger swift sell-offs in large-cap tech stocks. Short-term traders and risk managers should monitor policy calendars for similar events.
-
+* Decreasing price coupled with rising volume suggests that many investors are offloading shares immediately after a policy change.
 * The combined use of time-series and event-based analysis provides a replicable framework for investigating policy impacts on other equities.
