@@ -1,0 +1,410 @@
+---
+title: "Final Assignment"
+format: pdf
+editor: visual
+---
+
+# Dataset:
+
+Recent stock market trends in relation to recent news:
+
+[https://CRAN.R-project.org/package=yahoofinancer](https://cran.r-project.org/package=yahoofinancer)\
+
+## Fetching the data
+
+```{r}
+library(yahoofinancer)
+library(lubridate)
+library(ggplot2)
+library(dplyr)
+library(scales)
+
+library(ggrepel)
+library(patchwork)
+library(tidyverse)
+
+```
+
+```{r}
+Ticker$new()
+```
+
+```{r}
+
+
+appl <- Ticker$new("AAPL")
+hist <- appl$get_history(
+  start    = "2024-01-01",
+  end      = Sys.Date(),
+  interval = "1d"
+)
+```
+
+# Data Processing
+
+```{r}
+head(hist)
+print(c(min = min(hist$date), max = max(hist$date)))
+```
+
+```{r}
+as.double(hist$adj_close)
+head(hist)
+```
+
+```{r}
+hist$date <- as.Date(hist$date)
+class(hist$date)
+```
+
+### News
+
+### Defining important points
+
+```{r}
+hist_24 <- hist |> 
+  filter(date >= as.Date("2024-10-05"))
+
+
+
+Trump_date <- as.Date("2024-11-05")
+
+
+Trump_pt <- hist |>
+  filter(date == Trump_date)
+
+
+
+tariffs_date <- as.Date("2025-02-03")
+
+tariffs_pt <- hist |> 
+  filter(date == tariffs_date)
+
+
+
+end_pt<- hist |>
+  summarise(
+    date  = max(date),
+    close = close[which.max(date)]
+  )
+
+
+
+
+```
+
+```{r}
+new_2 <- hist |>
+  mutate(
+    year        = year(date),
+    dollar_vol  = volume * close
+  ) |>
+  group_by(year) |>
+  summarise(
+    total_dollar_traded    = sum(dollar_vol, na.rm = TRUE),
+    avg_daily_dollar_traded = mean(dollar_vol, na.rm = TRUE),
+  )|>mutate(
+    total_billion   = total_dollar_traded / 1e9,
+    average_million = avg_daily_dollar_traded  / 1e6
+  ) |>
+  select(
+    year,
+    total_billion,
+    average_million
+  )
+```
+
+```{r}
+ggplot(new_2, aes(x= factor(year), y= total_billion)) +geom_col(fill = "steelblue") +
+  labs(
+    title = "Annual Dollar Volume Traded in Apple Stock",
+    x     = "Year",
+    y     = "Total Dollars Traded",
+    subtitle = "Over 1,000 billion USD of AAPL stock is traded each year"
+  ) +scale_y_continuous(labels = function (x) paste0(x, "B"))+
+  theme_minimal() 
+
+```
+
+# General Trend of Closing and Opening Price of Apple Stock
+
+```{r}
+
+
+plot_2024 <- hist|>
+
+  ggplot(aes(x = date)) +
+  
+  geom_line(aes(y = close, colour = "Close")) +
+  
+  # second line: adjusted close
+  geom_line(aes(y = open, colour = "Open")) +
+  
+  # define your colours in the legend
+  scale_colour_manual(
+    name   = NULL,
+    values = c("Close" = "blue", "Open" = "red")
+  ) +
+  theme_minimal() +
+  labs(
+    x = "Date",
+    y = "Price",
+    title = "Close vs. Open in 2024"
+  ) +
+  theme(text = element_text(size = 14))
+
+
+plot_2024 
+```
+
+# The Impact of Tariffs on Apple’s Stock Price
+
+### Plot #1
+
+```{r}
+
+plot_nov2024 <- hist |>
+  filter(date >= as.Date("2024-10-05")) |>
+  ggplot(aes(x = date)) +
+    geom_line(aes(y = close, colour = "Close")) +
+    geom_line(aes(y = open,  colour = "Open")) +
+    scale_colour_manual(NULL, 
+      values = c("Close" = "red", "Open" = "darkgreen")
+    ) +
+ scale_x_date(
+      date_breaks  = "1 month",     
+      date_labels  = "%b ’%y"      
+    ) +
+  theme(
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      text= element_text(size = 10)
+    )+
+    theme_bw() +
+    labs(
+      x = "Date",
+      y = "Price (USD)",
+      title = "Decline in Apple’s Stock Price Following Tariff Announcement",
+      caption = "https://finance.yahoo.com"
+    ) 
+    
+
+
+
+
+
+plot_nov2024 +
+  geom_segment(
+    data = data.frame(
+      x    = tariffs_pt$date,
+      y    = tariffs_pt$close,
+      xend = end_pt$date,
+      yend = end_pt$close
+    ),
+    aes(x = x, y = y, xend = xend, yend = yend),
+    arrow    = arrow(length = unit(0.05, "npc"),ends   = "last"),
+    linetype = "dotted",
+    
+    colour   = "gray50"
+  ) +
+  geom_text(
+    data    = Trump_pt,
+    aes(x = date, y = close),
+    label   = "Trump wins election\n2024-11-05",
+    vjust   = 2,
+    fontface= "bold",
+    size    = 2.5
+  ) +
+  geom_point(
+    data   = Trump_pt,
+    aes(x = date, y = close),
+    shape  = 21,
+    fill   = "black",
+    size   = 2
+  ) +
+  geom_point(
+    data   = tariffs_pt,
+    aes(x = date, y = close),
+    shape  = 21,
+    fill   = "red",
+    size   = 2
+  ) +
+  geom_text(
+    data    = tariffs_pt,
+    aes(x = date, y = close),
+    label   = "Trump ordered tariffs\n2025-02-01",
+    vjust   = 1.8,
+    hjust   = 0.17,
+    fontface= "bold",
+    size    = 2.5
+  )
+
+
+
+
+```
+
+### 
+
+### Plot #2
+
+```{r}
+
+library(ggplot2)
+library(dplyr)
+
+avg_close = mean(hist_24$close,  na.rm = TRUE)
+
+
+
+
+ggplot(hist_24, aes(x = date, y = close)) +
+  geom_line(colour = "steelblue") +
+  geom_hline(
+    yintercept = avg_close,
+    colour     = "darkgreen",
+    size       = 1
+  ) + geom_vline(
+    xintercept = tariffs_pt$date,
+    colour     = "red",
+    size       = 1,
+    linetype = "dashed"
+  )+
+  scale_x_date(
+    date_breaks = "1 month",
+    date_labels = "%b ’%y"
+  ) +geom_hline(
+    yintercept = avg_close,
+    colour     = "darkgreen",
+    size       = 1
+  ) +
+ geom_point(
+    data   = tariffs_pt,
+    aes(x = date, y = close),
+    shape  = 21,
+    fill   = "black",
+    size   = 2
+  )+  geom_text(
+    data    = tariffs_pt,
+    aes(x = date, y = close),
+    label   = "Trump ordered tariffs\n2025-02-01",
+    vjust   = 1.8,
+    hjust   = 0.17,
+    fontface= "bold",
+    size    = 2.5
+  )+labs(
+    title = "Close Price and Its Overall Average Before and After Tariffs",
+    x     = "Date",
+    y     = "Price (USD)"
+  )+ annotate("text",
+           x      = max(hist_24$date),       
+           y      = avg_close,              
+           label  = paste0("Mean = ", 
+                           round(avg_close, 2)),
+           hjust  = 1.1,                   
+           vjust  = -0.5,                   
+           colour = "darkgreen",
+           fontface= "bold") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  annotate("text",
+           x      = as.Date("2025-04-4"),       
+           y      = 255,              
+           label  = "After",
+           hjust  = 1.1,                   
+           vjust  = -0.5,                   
+           colour = "black",
+           fontface= "bold") +
+    annotate("text",
+           x      = as.Date("2024-12-4"),       
+           y      = 255,              
+           label  = "Before",
+           hjust  = 1.1,                   
+           vjust  = -0.5,                   
+           colour = "black",
+           fontface= "bold")
+
+
+```
+
+# Distribution of Apple Stuck Price
+
+```{r}
+
+mean_close  <- mean(hist_24$close, na.rm = TRUE)
+median_close <- median(hist_24$close, na.rm = TRUE)
+h_info       <- hist(hist_24$close, breaks = 30, plot = FALSE)
+max_count    <- max(h_info$counts)
+
+ggplot(hist_24, aes(x = close)) +
+  geom_histogram(
+    bins  = 30,
+    fill  = "skyblue",
+    color = "white"
+  ) +
+
+  geom_vline(
+    xintercept = mean_close,
+    colour     = "red",
+    linetype   = "dashed",
+    size       = 1
+  ) +
+
+  geom_vline(
+    xintercept = median_close,
+    colour     = "blue",
+    linetype   = "dotted",
+    size       = 1
+  ) +
+  labs(
+    title = "Distribution of Apple Closing Prices",
+    x     = "Close Price (USD)",
+    y     = "Frequency"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45)
+  )+annotate(
+    "text",
+    x      = mean_close-10,
+    y      = max_count * 0.9,
+    label  = paste0("Mean = ", round(mean_close, 2)),
+    colour = "red",
+    angle  = 0,
+    vjust  = -0.5,
+    fontface = "bold"
+  ) +
+  annotate(
+    "text",
+    x      = median_close+10,
+    y      = max_count * 0.9,
+    label  = paste0("Median = ", round(median_close, 2)),
+    colour = "blue",
+    angle  = 0,
+    vjust  = -0.5,
+    fontface = "bold"
+  ) 
+
+
+
+```
+
+### Apple Trading Volume Over Time
+
+```{r}
+
+hist_24 <-hist_24|>
+  mutate(volume_milion = hist_24$volume/1000000)
+
+ggplot(hist_24, aes(x = date, y = volume_milion)) +
+  geom_line()+ 
+  scale_x_date(date_breaks = "1 month",
+    date_labels = "%b ’%y")+ labs(
+      x="Date", title = "Apple Trading Volume Over Time"
+    )+
+    theme_minimal()+
+  scale_y_continuous(
+    name   = "Volume (Million)",labels = function(x) paste0(x, "M")
+ )+ geom_smooth(method = "lm", se= FALSE,colour= "yellow",)
+
+
+```
